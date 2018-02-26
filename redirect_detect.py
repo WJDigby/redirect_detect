@@ -15,7 +15,7 @@ def redirect_detect(wait_time, url_list):
 		for line in lines:
 			original_url = line.rstrip()
 			if original_url in redirect_dict.keys():    # In the event that there's a duplicate in the list, ignore
-				break
+				continue
 			else:
 				browser.get(original_url)
 				redirect = "No"
