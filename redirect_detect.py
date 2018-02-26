@@ -1,6 +1,7 @@
 import argparse
 from selenium.webdriver import Firefox
 from selenium.webdriver.firefox.options import Options
+from selenium.common.exceptions import TimeoutException
 
 def redirect_detect(wait_time, url_list):
 	print("[+] Creating browser object...")
@@ -8,25 +9,35 @@ def redirect_detect(wait_time, url_list):
 	opts.set_headless()
 	assert opts.headless  
 	browser = Firefox(options=opts)
+	browser.set_page_load_timeout(20)
 	redirect_dict = {}
 	print("[+] Visiting URLs with a " + str(wait_time) + " second delay...")
 	with open(url_list) as f:
 		lines = f.readlines()
 		for line in lines:
 			original_url = line.rstrip()
+			if not original_url.startswith("http://") and not original_url.startswith("https://"):
+				original_url = "http://" + original_url
 			if original_url in redirect_dict.keys():    # In the event that there's a duplicate in the list, ignore
 				continue
 			else:
-				browser.get(original_url)
-				redirect = "No"
-				secure = "No"
-				browser.implicitly_wait(wait_time)
-				final_url = browser.current_url
-				if original_url != final_url:
-					redirect = "Yes"
-				if final_url.startswith("https"):
-					secure = "Yes"
-				redirect_dict[original_url] = [final_url, redirect, secure]
+				try:
+					browser.get(original_url)
+					redirect = "No"
+					secure = "No"
+					browser.implicitly_wait(wait_time)
+					final_url = browser.current_url
+					if original_url.endswith('/'):    # Normalize before comparing - we don't care about trailing /
+						original_url = original_url[:-1]
+					if final_url.endswith('/'):
+						final_url = final_url[:-1]
+					if original_url != final_url:
+						redirect = "Yes"
+					if final_url.startswith("https"):
+						secure = "Yes"
+					redirect_dict[original_url] = [final_url, redirect, secure]
+				except TimeoutException:
+					print("[-] Timeout while visiting " + original_url)
 		browser.quit()
 		print("[+] Browser object closed.")
 	i = 0
