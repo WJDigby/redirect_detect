@@ -2,6 +2,7 @@ import argparse
 from selenium.webdriver import Firefox
 from selenium.webdriver.firefox.options import Options
 from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import WebDriverException
 
 def redirect_detect(wait_time, url_list):
 	print("[+] Creating browser object...")
@@ -16,6 +17,8 @@ def redirect_detect(wait_time, url_list):
 		lines = f.readlines()
 		for line in lines:
 			original_url = line.rstrip()
+			if original_url.endswith('/'):    # Remove any trailing / first in case "http://example.com/" and "http://example.com" are in the input list
+						original_url = original_url[:-1]
 			if not original_url.startswith("http://") and not original_url.startswith("https://"):
 				original_url = "http://" + original_url
 			if original_url in redirect_dict.keys():    # In the event that there's a duplicate in the list, ignore
@@ -27,8 +30,6 @@ def redirect_detect(wait_time, url_list):
 					secure = "No"
 					browser.implicitly_wait(wait_time)
 					final_url = browser.current_url
-					if original_url.endswith('/'):    # Normalize before comparing - we don't care about trailing /
-						original_url = original_url[:-1]
 					if final_url.endswith('/'):
 						final_url = final_url[:-1]
 					if original_url != final_url:
@@ -38,6 +39,10 @@ def redirect_detect(wait_time, url_list):
 					redirect_dict[original_url] = [final_url, redirect, secure]
 				except TimeoutException:
 					print("[-] Timeout while visiting " + original_url)
+					redirect_dict[original_url] = ["Timeout", "N/A", "N/A"]
+				except WebDriverException:
+					print("[-] WebDriverException while visiting " + original_url)
+					redirect_dict[original_url] = ["WebDriverException", "N/A", "N/A"]
 		browser.quit()
 		print("[+] Browser object closed.")
 	i = 0
