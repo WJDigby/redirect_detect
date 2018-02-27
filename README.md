@@ -12,7 +12,7 @@ Also requires Python argparse and selenium.
 
 **Usage:**
 
-python3 redirect-detect.py -l /path/to/list/of/urls.lst -t 5
+ python3 redirect-detect.py -l /path/to/list/of/urls.lst -t 5
 
 -l / --list Path to a list of URLs, separated by line
 
