@@ -4,15 +4,15 @@ from selenium.webdriver.firefox.options import Options
 from selenium.common.exceptions import TimeoutException
 from selenium.common.exceptions import WebDriverException
 
-def redirect_detect(wait_time, url_list):
+def redirect_detect(timeout, dwell_time, url_list):
 	print("[+] Creating browser object...")
 	opts = Options()
 	opts.set_headless()
 	assert opts.headless  
 	browser = Firefox(options=opts)
-	browser.set_page_load_timeout(20)
+	browser.set_page_load_timeout(timeout)
 	redirect_dict = {}
-	print("[+] Visiting URLs with a " + str(wait_time) + " second delay...")
+	print("[+] Visiting URLs with a dwell time of " + str(dwell_time) + " seconds...")
 	with open(url_list) as f:
 		lines = f.readlines()
 		for line in lines:
@@ -28,7 +28,7 @@ def redirect_detect(wait_time, url_list):
 					browser.get(original_url)
 					redirect = "No"
 					secure = "No"
-					browser.implicitly_wait(wait_time)
+					browser.implicitly_wait(dwell_time)
 					final_url = browser.current_url
 					if final_url.endswith('/'):
 						final_url = final_url[:-1]
@@ -45,23 +45,30 @@ def redirect_detect(wait_time, url_list):
 					redirect_dict[original_url] = ["WebDriverException", "N/A", "N/A"]
 		browser.quit()
 		print("[+] Browser object closed.")
-	i = 0
+	redirect_count = 0
+	redirect_urls = []
 	print("[+] Results:\nOriginal URL - Final URL - Redirect - Secure")
 	for key, value in redirect_dict.items():
 		print(key, value[0], value[1], value[2])
 		if redirect_dict[key][1] is "Yes":
-			i += 1
-	print(str(len(redirect_dict)) + " unique URLS assessed.")
-	print(str(i) + " redirections detected.")
+			redirect_count += 1
+		if redirect_dict[key][0] not in redirect_urls:
+			redirect_urls.append(redirect_dict[key][0])
+	print(str(len(redirect_dict)) + " unique original URLs.")
+	print(str(len(redirect_urls)) + " unique final URLs.")
+	print(str(redirect_count) + " redirections.")
+	
 
 def main():
 	parser = argparse.ArgumentParser(description='Use Selenium to test a list of URLs for redirects')
-	parser.add_argument('-t', '--time', dest='wait_time', type=int, default=2, help='Time in seconds to wait after browsing to site. Default 2.')
+	parser.add_argument('-d', '--dwell', dest='dwell_time', type=int, default=2, help='Time in seconds to dwell on a site after browsing to it. Default 2.')
+	parser.add_argument('-t', '--timeout', dest='timeout', type=int, default=20, help='Timeout in seconds. Default 20.')
 	parser.add_argument('-l', '--list', dest='url_list', required=True, help='File containing list of URLs, separated by line.')
 	args = parser.parse_args()
-	wait_time = args.wait_time
+	dwell_time = args.dwell_time
+	timeout = args.timeout
 	url_list = args.url_list
-	redirect_detect(wait_time, url_list)
+	redirect_detect(timeout, dwell_time, url_list)
 
 if __name__ == '__main__':
 	main()
